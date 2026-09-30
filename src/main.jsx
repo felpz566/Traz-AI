@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState}from"react";
-import{Archive,ArchiveRestore,Bot,Check,ChevronLeft,Copy,FileText,ImagePlus,Menu,Mic,MoreHorizontal,Moon,Pencil,Pin,PinOff,Plus,Search,Send,Sun,Trash2,User,X,Paperclip}from"lucide-react";
+import{Archive,ArchiveRestore,Bot,Check,Copy,FileText,ImagePlus,Menu,Mic,MoreHorizontal,Moon,Pencil,Pin,PinOff,Plus,Search,Send,Settings,Sun,Trash2,User,X,Paperclip}from"lucide-react";
 import"./styles.css";
 
 const STORAGE="traz-ai:conversations:v2";
@@ -12,29 +12,16 @@ function readTheme(){try{return localStorage.getItem(THEME)==="light"?"light":"d
 function App(){
  const[convs,setConvs]=useState(read);
  const[active,setActive]=useState(()=>read().find(c=>!c.archived)?.id||read()[0]?.id);
- const[draft,setDraft]=useState("");
- const[query,setQuery]=useState("");
- const[sidebar,setSidebar]=useState(true);
- const[menu,setMenu]=useState(null);
- const[recording,setRecording]=useState(false);
- const[file,setFile]=useState(null);
- const[theme,setTheme]=useState(readTheme);
- const input=useRef(null);
+ const[draft,setDraft]=useState("");const[query,setQuery]=useState("");const[sidebar,setSidebar]=useState(true);const[menu,setMenu]=useState(null);const[recording,setRecording]=useState(false);const[file,setFile]=useState(null);const[theme,setTheme]=useState(readTheme);const[settings,setSettings]=useState(false);const input=useRef(null);
  const current=useMemo(()=>convs.find(c=>c.id===active)||convs.find(c=>!c.archived)||convs[0],[convs,active]);
- const visible=convs.filter(c=>!c.archived&&c.title.toLowerCase().includes(query.toLowerCase()));
- const archived=convs.filter(c=>c.archived);
- useEffect(()=>localStorage.setItem(STORAGE,JSON.stringify(convs)),[convs]);
- useEffect(()=>{localStorage.setItem(THEME,theme);document.documentElement.dataset.theme=theme},[theme]);
- const update=fn=>setConvs(x=>x.map(c=>c.id===current?.id?fn(c):c));
- const newChat=()=>{const c=fresh();setConvs(x=>[c,...x]);setActive(c.id);setDraft("");setMenu(null)};
+ const visible=convs.filter(c=>!c.archived&&c.title.toLowerCase().includes(query.toLowerCase()));const archived=convs.filter(c=>c.archived);
+ useEffect(()=>localStorage.setItem(STORAGE,JSON.stringify(convs)),[convs]);useEffect(()=>{localStorage.setItem(THEME,theme);document.documentElement.dataset.theme=theme},[theme]);
+ const update=fn=>setConvs(x=>x.map(c=>c.id===current?.id?fn(c):c));const newChat=()=>{const c=fresh();setConvs(x=>[c,...x]);setActive(c.id);setDraft("");setSettings(false);setMenu(null)};
  const send=()=>{if(current?.archived)return;const text=draft.trim();if(!text)return;const now=Date.now();update(c=>({...c,title:c.messages.length?c.title:text.length>34?text.slice(0,34)+"…":text,updatedAt:now,messages:[...c.messages,{id:id(),role:"user",content:text,createdAt:now}]}));setDraft("")};
  const rename=(conversation=current)=>{const title=prompt("Nome da conversa:",conversation?.title);if(title?.trim())setConvs(x=>x.map(c=>c.id===conversation.id?{...c,title:title.trim(),updatedAt:Date.now()}:c));setMenu(null)};
- const togglePin=conversation=>{setConvs(x=>x.map(c=>c.id===conversation.id?{...c,pinned:!c.pinned,updatedAt:Date.now()}:c));setMenu(null)};
- const archive=conversation=>{setConvs(x=>x.map(c=>c.id===conversation.id?{...c,archived:true,updatedAt:Date.now()}:c));if(active===conversation.id){const next=convs.find(c=>c.id!==conversation.id&&!c.archived);setActive(next?.id)}setMenu(null)};
- const restore=conversation=>{setConvs(x=>x.map(c=>c.id===conversation.id?{...c,archived:false,updatedAt:Date.now()}:c));setMenu(null)};
- const remove=conversation=>{if(!confirm("Tem certeza que deseja deletar esta conversa? Esta ação não pode ser desfeita."))return;setConvs(x=>{const y=x.filter(c=>c.id!==conversation.id);const z=y.length?y:[fresh()];if(active===conversation.id)setActive(z.find(c=>!c.archived)?.id||z[0].id);return z});setMenu(null)};
- const attach=e=>{const f=e.target.files?.[0];if(f)setFile(f)};
- const openConversation=c=>{if(c.archived)return;setActive(c.id);setMenu(null)};
+ const togglePin=c=>{setConvs(x=>x.map(v=>v.id===c.id?{...v,pinned:!v.pinned,updatedAt:Date.now()}:v));setMenu(null)};const archive=c=>{setConvs(x=>x.map(v=>v.id===c.id?{...v,archived:true,updatedAt:Date.now()}:v));if(active===c.id){const next=convs.find(v=>v.id!==c.id&&!v.archived);setActive(next?.id)}setMenu(null)};const restore=c=>{setConvs(x=>x.map(v=>v.id===c.id?{...v,archived:false,updatedAt:Date.now()}:v));setMenu(null)};
+ const remove=c=>{if(!confirm("Tem certeza que deseja deletar esta conversa? Esta ação não pode ser desfeita."))return;setConvs(x=>{const y=x.filter(v=>v.id!==c.id),z=y.length?y:[fresh()];if(active===c.id)setActive(z.find(v=>!v.archived)?.id||z[0].id);return z});setMenu(null)};
+ const attach=e=>{const f=e.target.files?.[0];if(f)setFile(f)};const openConversation=c=>{if(!c.archived){setActive(c.id);setSettings(false);setMenu(null)}};
  return <div className="app" onClick={()=>menu&&setMenu(null)}>
   <aside className={sidebar?"sidebar":"sidebar collapsed"} onClick={e=>e.stopPropagation()}>
    <div className="brand"><div className="brandMark"><Bot size={20}/></div>{sidebar&&<div><strong>Traz da IA</strong><span>Gemini · 3.8 Flash</span></div>}</div>
@@ -42,28 +29,17 @@ function App(){
    {sidebar&&<div className="search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar conversas"/></div>}
    {sidebar&&<div className="sectionLabel">CONVERSAS</div>}
    {sidebar&&<div className="conversationList">{visible.sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt-a.updatedAt).map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={archive} onDelete={remove}/>)}</div>}
-   {sidebar&&archived.length>0&&<div className="archivedSection"><div className="sectionLabel">ARQUIVADAS</div>{archived.map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={restore} onDelete={remove} archived/> )}</div>}
-   <div className="sideBottom">
-    {sidebar&&<button onClick={()=>setTheme(t=>t==="dark"?"light":"dark")}><span className="themeIcon">{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</span>{theme==="dark"?"Tema claro":"Tema escuro"}</button>}
-   </div>
+   {sidebar&&archived.length>0&&<div className="archivedSection"><div className="sectionLabel">ARQUIVADAS</div>{archived.map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={restore} onDelete={remove} archived/>)}</div>}
+   <div className="sideBottom">{sidebar&&<button onClick={()=>setSettings(true)}><Settings size={18}/>Configurações</button>}</div>
   </aside>
   {sidebar&&<div className="sidebarBackdrop" onClick={()=>setSidebar(false)}/>}
   <main className="main" onClick={()=>{setSidebar(false);setMenu(null)}}>
-   <header>
-    <div className="mobileMenu" onClick={e=>{e.stopPropagation();setSidebar(x=>!x)}}><Menu size={21}/></div>
-    <div className="headerTitle"><span>Traz da IA</span><small>Gemini-3-8-flash</small></div>
-    <div className="headerActions"><button title="Renomear" onClick={e=>{e.stopPropagation();rename()}}><Pencil size={18}/></button><button title="Excluir" onClick={e=>{e.stopPropagation();remove(current)}}><Trash2 size={18}/></button></div>
-   </header>
-   <div className="chat">{current?.archived?<div className="archivedNotice"><Archive size={28}/><h2>Chat arquivado</h2><p>Este chat está arquivado e não pode receber novas mensagens.</p><button onClick={()=>restore(current)}>Desarquivar chat</button></div>:current?.messages.length===0?<div className="welcome"><div className="welcomeIcon"><Bot size={32}/></div><h1>Converse com o Traz da IA</h1><p>Uma interface preparada para o Gemini-3-8-flash. A resposta da IA será conectada depois.</p><div className="suggestions"><button onClick={()=>setDraft("Explique como funciona uma ModuleScript no Roblox.")}>Explique um conceito</button><button onClick={()=>setDraft("Me ajude a criar uma função em Luau.")}>Ajude com código</button><button onClick={()=>setDraft("Analise este arquivo para mim.")}>Analise um arquivo</button></div></div>:current.messages.map(m=><Bubble key={m.id} message={m}/>)}</div>
-   {!current?.archived&&<div className="composerWrap"><div className="composer">{file&&<div className="attachment"><FileText size={15}/><span>{file.name}</span><X size={14} onClick={()=>setFile(null)}/></div>}<textarea value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Mensagem para o Traz da IA..." rows="1"/><div className="composerBar"><div className="tools"><button title="Adicionar arquivo" onClick={()=>input.current?.click()}><Paperclip/></button><input ref={input} hidden type="file" onChange={attach}/><button title="Imagem" onClick={()=>input.current?.click()}><ImagePlus/></button><button className={recording?"recording":""} title="Transcrever áudio" onClick={()=>setRecording(x=>!x)}><Mic/></button></div><button className="send" disabled={!draft.trim()} onClick={send}><Send size={18}/></button></div></div><small className="disclaimer">As respostas serão geradas pelo Gemini-3-8-flash quando a integração for adicionada.</small></div>}
+   <header><div className="mobileMenu" onClick={e=>{e.stopPropagation();setSidebar(x=>!x)}}><Menu size={21}/></div><div className="headerTitle"><span>Traz da IA</span><small>Gemini-3-8-flash</small></div><div className="headerActions"><button title="Renomear" onClick={e=>{e.stopPropagation();rename()}}><Pencil size={18}/></button><button title="Excluir" onClick={e=>{e.stopPropagation();remove(current)}}><Trash2 size={18}/></button></div></header>
+   {settings?<SettingsPanel theme={theme} setTheme={setTheme}/>:<><div className="chat">{current?.archived?<div className="archivedNotice"><Archive size={28}/><h2>Chat arquivado</h2><p>Este chat está arquivado e não pode receber novas mensagens.</p><button onClick={()=>restore(current)}>Desarquivar chat</button></div>:current?.messages.length===0?<div className="welcome"><div className="welcomeIcon"><Bot size={32}/></div><h1>Converse com o Traz da IA</h1><p>Uma interface preparada para o Gemini-3-8-flash. A resposta da IA será conectada depois.</p><div className="suggestions"><button onClick={()=>setDraft("Explique como funciona uma ModuleScript no Roblox.")}>Explique um conceito</button><button onClick={()=>setDraft("Me ajude a criar uma função em Luau.")}>Ajude com código</button><button onClick={()=>setDraft("Analise este arquivo para mim.")}>Analise um arquivo</button></div></div>:current.messages.map(m=><Bubble key={m.id} message={m}/>)}</div>{!current?.archived&&<div className="composerWrap"><div className="composer">{file&&<div className="attachment"><FileText size={15}/><span>{file.name}</span><X size={14} onClick={()=>setFile(null)}/></div>}<textarea value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Mensagem para o Traz da IA..." rows="1"/><div className="composerBar"><div className="tools"><button title="Adicionar arquivo" onClick={()=>input.current?.click()}><Paperclip/></button><input ref={input} hidden type="file" onChange={attach}/><button title="Imagem" onClick={()=>input.current?.click()}><ImagePlus/></button><button className={recording?"recording":""} title="Transcrever áudio" onClick={()=>setRecording(x=>!x)}><Mic/></button></div><button className="send" disabled={!draft.trim()} onClick={send}><Send size={18}/></button></div></div><small className="disclaimer">As respostas serão geradas pelo Gemini-3-8-flash quando a integração for adicionada.</small></div>}</>}
   </main>
  </div>
 }
-
-function Conversation({conversation:c,menu,setMenu,onOpen,onRename,onPin,onArchive,onDelete,archived=false}){
- const open=menu===c.id;
- return <div className={"conversationWrap "+(open?"menuOpen":"")}><button className={"conversation "+(c.archived?"isArchived":"")} onClick={()=>onOpen(c)}><FileText size={14}/><span>{c.pinned&&<Pin size={11} className="pinIcon"/>}{c.title}</span><MoreHorizontal size={16} className="more" onClick={e=>{e.stopPropagation();setMenu(open?null:c.id)}}/></button>{open&&<div className="conversationMenu" onClick={e=>e.stopPropagation()}><button onClick={()=>onPin(c)}>{c.pinned?<PinOff size={15}/>:<Pin size={15}/>}Fixar</button><button onClick={()=>onRename(c)}><Pencil size={15}/>Editar nome</button><button onClick={()=>onArchive(c)}>{archived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {archived?"Desarquivar chat":"Arquivar chat"}</button><button className="danger" onClick={()=>onDelete(c)}><Trash2 size={15}/>Deletar</button></div>}</div>
-}
-
+function Conversation({conversation:c,menu,setMenu,onOpen,onRename,onPin,onArchive,onDelete,archived=false}){const open=menu===c.id;return <div className={"conversationWrap "+(open?"menuOpen":"")}><button className={"conversation "+(c.archived?"isArchived":"")} onClick={()=>onOpen(c)}><FileText size={14}/><span>{c.pinned&&<Pin size={11} className="pinIcon"/>}{c.title}</span><MoreHorizontal size={16} className="more" onClick={e=>{e.stopPropagation();setMenu(open?null:c.id)}}/></button>{open&&<div className="conversationMenu" onClick={e=>e.stopPropagation()}><button onClick={()=>onPin(c)}>{c.pinned?<PinOff size={15}/>:<Pin size={15}/>}Fixar</button><button onClick={()=>onRename(c)}><Pencil size={15}/>Editar nome</button><button onClick={()=>onArchive(c)}>{archived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {archived?"Desarquivar chat":"Arquivar chat"}</button><button className="danger" onClick={()=>onDelete(c)}><Trash2 size={15}/>Deletar</button></div>}</div>}
 function Bubble({message}){const[copy,setCopy]=useState(false);return <div className={"row "+message.role}><div className="avatar">{message.role==="user"?<User size={17}/>:<Bot size={17}/>}</div><div className="bubble"><div className="bubbleHead">{message.role==="user"?"Você":"Traz da IA"}</div><div className="content">{message.content}</div>{message.role==="assistant"&&<button className="copy" onClick={()=>{navigator.clipboard?.writeText(message.content);setCopy(true);setTimeout(()=>setCopy(false),1200)}}>{copy?<Check size={14}/>:<Copy size={14}/>}</button>}</div></div>}
+function SettingsPanel({theme,setTheme}){return <div className="settingsPage"><div className="settingsIcon"><Settings size={26}/></div><h1>Configurações</h1><p>Preferências do Traz da IA ficam salvas neste navegador.</p><div className="settingsCard"><div><strong>Tema</strong><div className="themeOptions"><button className={theme==="dark"?"selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/>Escuro</button><button className={theme==="light"?"selected":""} onClick={()=>setTheme("light")}><Sun size={16}/>Claro</button></div></div><div><strong>Modelo</strong><span>Gemini-3-8-flash</span></div><div><strong>Conversas</strong><span>Salvas localmente no localStorage</span></div><div><strong>Áudio</strong><span>Interface de transcrição preparada</span></div><div><strong>Arquivos</strong><span>Anexos preparados para futura integração</span></div></div></div>}
 createRoot(document.getElementById("root")).render(<App/>);
