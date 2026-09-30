@@ -42,7 +42,7 @@ function App(){
    {sidebar&&<div className="sectionLabel">CONVERSAS</div>}
    {sidebar&&<div className="conversationList">{visible.sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt-a.updatedAt).map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={archive} onDelete={remove}/>)}</div>}
    {sidebar&&archived.length>0&&<div className="archivedSection"><div className="sectionLabel">ARQUIVADAS</div>{archived.map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={restore} onDelete={remove} archived/>)}</div>}
-   <div className="sideBottom">{sidebar&&<AccountArea auth={auth} onLogin={login} onLogout={logout}/>} {sidebar&&<button onClick={()=>{setSettings(true);setSettingsSection("appearance")}}><Settings size={18}/>Configurações</button>}</div>
+   <div className="sideBottom">{sidebar&&<div className="accountSection"><AccountArea auth={auth} onLogin={login} onLogout={logout}/></div>}{sidebar&&<div className="settingsButtonWrap"><button className="settingsButton" onClick={()=>{setSettings(true);setSettingsSection("appearance")}}><Settings size={18}/>Configurações</button></div>}</div>
   </aside>
   {sidebar&&<div className="sidebarBackdrop" onClick={()=>setSidebar(false)}/>}
   <main className="main" onClick={()=>{setSidebar(false);setMenu(null)}}>
