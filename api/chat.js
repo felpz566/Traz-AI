@@ -1,12 +1,12 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// O primeiro é o modelo principal.
-// Os seguintes são usados automaticamente se o anterior falhar.
+// Ordem de fallback: o primeiro é o modelo principal.
 const GEMINI_MODELS = [
   "gemini-3.8-flash",
   "gemini-3.7-flash",
   "gemini-3.6-flash",
   "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
   "gemini-3-flash-preview",
   "gemini-2.5-flash"
 ];
@@ -57,9 +57,7 @@ export default async function handler(req, res) {
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-              contents
-            })
+            body: JSON.stringify({ contents })
           }
         );
 
@@ -82,10 +80,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        return res.status(200).json({
-          reply,
-          model
-        });
+        return res.status(200).json({ reply, model });
       } catch (error) {
         lastError = error?.message || `Falha ao consultar ${model}.`;
         console.warn(`Modelo ${model} falhou:`, error);
@@ -97,9 +92,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("Gemini API error:", error);
-
-    return res.status(500).json({
-      error: "Falha ao conectar com o Gemini."
-    });
+    return res.status(500).json({ error: "Falha ao conectar com o Gemini." });
   }
 }
