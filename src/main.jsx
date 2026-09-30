@@ -4,23 +4,28 @@ import{Archive,ArchiveRestore,Bot,Check,Copy,FileText,ImagePlus,Menu,Mic,MoreHor
 import"./styles.css";
 
 const STORAGE="traz-ai:conversations:v2";
+const AUTH="traz-ai:account:v1";
+const accountStorage=id=>`traz-ai:conversations:${id}:v1`;
 const THEME="traz-ai:theme:v1";
 const PREFS="traz-ai:preferences:v1";
 const id=()=>crypto.randomUUID?.()||Math.random().toString(36).slice(2)+Date.now();
 const fresh=()=>({id:id(),title:"Nova conversa",createdAt:Date.now(),updatedAt:Date.now(),messages:[],pinned:false,archived:false});
 function read(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||"[]");return Array.isArray(x)&&x.length?x:[fresh()]}catch{return[fresh()]}}
 function readTheme(){try{return localStorage.getItem(THEME)||"system"}catch{return"system"}}
+function readAuth(){try{return JSON.parse(localStorage.getItem(AUTH)||"null")}catch{return null}}
+function decodeGoogleCredential(credential){try{const part=credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(atob(part).split("").map(ch=>"%"+("00"+ch.charCodeAt(0).toString(16)).slice(-2)).join("")))}catch{return null}}
+function readAccountConversations(account){if(!account?.sub)return[fresh()];try{const x=JSON.parse(localStorage.getItem(accountStorage(account.sub))||"[]");return Array.isArray(x)&&x.length?x:[fresh()]}catch{return[fresh()]}}
 function readPrefs(){try{return JSON.parse(localStorage.getItem(PREFS)||"{}")}catch{return{}}}
 
 function App(){
- const[convs,setConvs]=useState(read);
+ const[auth,setAuth]=useState(readAuth);\n const[convs,setConvs]=useState(()=>readAccountConversations(readAuth()));
  const[active,setActive]=useState(()=>read().find(c=>!c.archived)?.id||read()[0]?.id);
  const[draft,setDraft]=useState("");const[query,setQuery]=useState("");const[sidebar,setSidebar]=useState(true);const[menu,setMenu]=useState(null);const[recording,setRecording]=useState(false);const[file,setFile]=useState(null);const[theme,setTheme]=useState(readTheme);const[prefs,setPrefs]=useState(readPrefs);const[settings,setSettings]=useState(false);const[settingsSection,setSettingsSection]=useState("appearance");const input=useRef(null);
  const current=useMemo(()=>convs.find(c=>c.id===active)||convs.find(c=>!c.archived)||convs[0],[convs,active]);
  const visible=convs.filter(c=>!c.archived&&c.title.toLowerCase().includes(query.toLowerCase()));const archived=convs.filter(c=>c.archived);
- useEffect(()=>localStorage.setItem(STORAGE,JSON.stringify(convs)),[convs]);
+ useEffect(()=>{if(auth?.sub)localStorage.setItem(accountStorage(auth.sub),JSON.stringify(convs))},[convs,auth]);
  useEffect(()=>{localStorage.setItem(THEME,theme);applyTheme(theme)},[theme]);
- useEffect(()=>localStorage.setItem(PREFS,JSON.stringify(prefs)),[prefs]);
+ useEffect(()=>localStorage.setItem(PREFS,JSON.stringify(prefs)),[prefs]);\n useEffect(()=>{const listener=e=>{if(e.matches&&theme==="system")applyTheme("system")};const media=window.matchMedia?.("(prefers-color-scheme: light)");media?.addEventListener?.("change",listener);return()=>media?.removeEventListener?.("change",listener)},[theme]);\n const login=credential=>{const data=decodeGoogleCredential(credential);if(!data?.sub)return;const account={sub:data.sub,name:data.name||data.given_name||"Usuário",email:data.email||"",picture:data.picture||""};setAuth(account);localStorage.setItem(AUTH,JSON.stringify(account));const loaded=readAccountConversations(account);setConvs(loaded);setActive(loaded.find(c=>!c.archived)?.id||loaded[0]?.id)};\n const logout=()=>{setAuth(null);localStorage.removeItem(AUTH);setConvs([fresh()]);setActive(null);setSettings(false)};
  const update=fn=>setConvs(x=>x.map(c=>c.id===current?.id?fn(c):c));const newChat=()=>{const c=fresh();setConvs(x=>[c,...x]);setActive(c.id);setDraft("");setSettings(false);setMenu(null)};
  const send=()=>{if(current?.archived)return;const text=draft.trim();if(!text)return;const now=Date.now();update(c=>({...c,title:c.messages.length?c.title:text.length>34?text.slice(0,34)+"…":text,updatedAt:now,messages:[...c.messages,{id:id(),role:"user",content:text,createdAt:now}]}));setDraft("")};
  const rename=(conversation=current)=>{const title=prompt("Nome da conversa:",conversation?.title);if(title?.trim())setConvs(x=>x.map(c=>c.id===conversation.id?{...c,title:title.trim(),updatedAt:Date.now()}:c));setMenu(null)};
@@ -36,7 +41,7 @@ function App(){
    {sidebar&&<div className="sectionLabel">CONVERSAS</div>}
    {sidebar&&<div className="conversationList">{visible.sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt-a.updatedAt).map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={archive} onDelete={remove}/>)}</div>}
    {sidebar&&archived.length>0&&<div className="archivedSection"><div className="sectionLabel">ARQUIVADAS</div>{archived.map(c=><Conversation key={c.id} conversation={c} menu={menu} setMenu={setMenu} onOpen={openConversation} onRename={rename} onPin={togglePin} onArchive={restore} onDelete={remove} archived/>)}</div>}
-   <div className="sideBottom">{sidebar&&<button onClick={()=>{setSettings(true);setSettingsSection("appearance")}}><Settings size={18}/>Configurações</button>}</div>
+   <div className="sideBottom">{sidebar&&<AccountArea auth={auth} onLogin={login} onLogout={logout}/>} {sidebar&&<button onClick={()=>{setSettings(true);setSettingsSection("appearance")}}><Settings size={18}/>Configurações</button>}</div>
   </aside>
   {sidebar&&<div className="sidebarBackdrop" onClick={()=>setSidebar(false)}/>}
   <main className="main" onClick={()=>{setSidebar(false);setMenu(null)}}>
@@ -47,7 +52,7 @@ function App(){
 }
 
 function applyTheme(theme){const value=theme==="system"?(window.matchMedia?.("(prefers-color-scheme: light)").matches?"light":"dark"):theme;document.documentElement.dataset.theme=value}
-function Conversation({conversation:c,menu,setMenu,onOpen,onRename,onPin,onArchive,onDelete,archived=false}){const open=menu===c.id;return <div className={"conversationWrap "+(open?"menuOpen":"")}><button className={"conversation "+(c.archived?"isArchived":"")} onClick={()=>onOpen(c)}><FileText size={14}/><span>{c.pinned&&<Pin size={11} className="pinIcon"/>}{c.title}</span><MoreHorizontal size={16} className="more" onClick={e=>{e.stopPropagation();setMenu(open?null:c.id)}}/></button>{open&&<div className="conversationMenu" onClick={e=>e.stopPropagation()}><button onClick={()=>onPin(c)}>{c.pinned?<PinOff size={15}/>:<Pin size={15}/>}Fixar</button><button onClick={()=>onRename(c)}><Pencil size={15}/>Editar nome</button><button onClick={()=>onArchive(c)}>{archived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {archived?"Desarquivar chat":"Arquivar chat"}</button><button className="danger" onClick={()=>onDelete(c)}><Trash2 size={15}/>Deletar</button></div>}</div>}
+function AccountArea({auth,onLogin,onLogout}){const ref=useRef(null);useEffect(()=>{if(auth||!ref.current)return;const existing=document.getElementById("google-gsi");const setup=()=>{if(!window.google||!ref.current)return;ref.current.innerHTML="";window.google.accounts.id.initialize({client_id:import.meta.env.VITE_GOOGLE_CLIENT_ID||"",callback:response=>onLogin(response.credential),auto_select:false});window.google.accounts.id.renderButton(ref.current,{theme:"outline",size:"large",shape:"rectangular",text:"signin_with",width:245,locale:"pt-BR"});};if(existing)setup();else{const script=document.createElement("script");script.id="google-gsi";script.src="https://accounts.google.com/gsi/client";script.async=true;script.defer=true;script.onload=setup;document.head.appendChild(script)}},[auth,onLogin]);if(!auth)return <div className="accountArea"><div ref={ref} className="googleButton"/><small>Entre para salvar suas conversas.</small></div>;return <div className="accountArea signed"><div className="accountProfile">{auth.picture?<img src={auth.picture} alt=""/>:<div className="accountAvatar">{(auth.name||"U")[0]}</div>}<div><strong>{auth.name}</strong><span>{auth.email}</span></div></div><button onClick={onLogout}>Sair</button></div>}\nfunction Conversation({conversation:c,menu,setMenu,onOpen,onRename,onPin,onArchive,onDelete,archived=false}){const open=menu===c.id;return <div className={"conversationWrap "+(open?"menuOpen":"")}><button className={"conversation "+(c.archived?"isArchived":"")} onClick={()=>onOpen(c)}><FileText size={14}/><span>{c.pinned&&<Pin size={11} className="pinIcon"/>}{c.title}</span><MoreHorizontal size={16} className="more" onClick={e=>{e.stopPropagation();setMenu(open?null:c.id)}}/></button>{open&&<div className="conversationMenu" onClick={e=>e.stopPropagation()}><button onClick={()=>onPin(c)}>{c.pinned?<PinOff size={15}/>:<Pin size={15}/>}Fixar</button><button onClick={()=>onRename(c)}><Pencil size={15}/>Editar nome</button><button onClick={()=>onArchive(c)}>{archived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {archived?"Desarquivar chat":"Arquivar chat"}</button><button className="danger" onClick={()=>onDelete(c)}><Trash2 size={15}/>Deletar</button></div>}</div>}
 function Bubble({message}){const[copy,setCopy]=useState(false);return <div className={"row "+message.role}><div className="avatar">{message.role==="user"?<User size={17}/>:<Bot size={17}/>}</div><div className="bubble"><div className="bubbleHead">{message.role==="user"?"Você":"Traz da IA"}</div><div className="content">{message.content}</div>{message.role==="assistant"&&<button className="copy" onClick={()=>{navigator.clipboard?.writeText(message.content);setCopy(true);setTimeout(()=>setCopy(false),1200)}}>{copy?<Check size={14}/>:<Copy size={14}/>}</button>}</div></div>}
 
 function SettingsPanel({theme,setTheme,prefs,setPrefs,section,setSection,removeAll}){
