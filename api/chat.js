@@ -1,4 +1,4 @@
-const GEMINI_API_KEY = "COLOQUE_SUA_CHAVE_AQUI";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // O primeiro é o modelo principal.
 // Os seguintes são usados automaticamente se o anterior falhar.
@@ -16,9 +16,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método não permitido." });
   }
 
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === "COLOQUE_SUA_CHAVE_AQUI") {
+  if (!GEMINI_API_KEY) {
     return res.status(500).json({
-      error: "Configure sua GEMINI_API_KEY diretamente em api/chat.js."
+      error: "GEMINI_API_KEY não configurada nas Environment Variables da Vercel."
     });
   }
 
