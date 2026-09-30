@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState}from"react";
+import{createRoot}from"react-dom/client";
 import{Archive,ArchiveRestore,Bot,Check,Copy,FileText,ImagePlus,Menu,Mic,MoreHorizontal,Moon,Pencil,Pin,PinOff,Plus,Search,Send,Settings,Sun,Trash2,User,X,Paperclip}from"lucide-react";
 import"./styles.css";
 
