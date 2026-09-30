@@ -10,7 +10,7 @@ const AUTH="traz-ai:account:v1";
 const accountStorage=id=>`traz-ai:conversations:${id}:v1`;
 const THEME="traz-ai:theme:v1";
 const PREFS="traz-ai:preferences:v1";
-const GOOGLE_CLIENT_ID="795721655973-hsimqhadimn2c2htq4u6ifumis9dhequ.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID="795721655973-o3d09l26dccka4c414lgggph7ngiagnv.apps.googleusercontent.com";
 const id=()=>crypto.randomUUID?.()||Math.random().toString(36).slice(2)+Date.now();
 const fresh=()=>({id:id(),title:"Nova conversa",createdAt:Date.now(),updatedAt:Date.now(),messages:[],pinned:false,archived:false});
 function read(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||"[]");return Array.isArray(x)&&x.length?x:[fresh()]}catch{return[fresh()]}}
