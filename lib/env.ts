@@ -1,0 +1,2 @@
+function required(name: string): string { const value=process.env[name]; if(!value) throw new Error(`Missing required environment variable: ${name}`); return value; }
+export const env={get aiToken(){return required("IA_API_TOKEN")},get aiModel(){return process.env.IA_MODEL||"gemini-3.8-flash"},get goatpayToken(){return required("GOATPAY_API_TOKEN")},get goatpayWebhookSecret(){return required("GOATPAY_WEBHOOK_SECRET")},get appUrl(){return process.env.TRAZ_APP_URL||"http://localhost:3000"}};
