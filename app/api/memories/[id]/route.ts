@@ -1,0 +1,2 @@
+import {NextRequest} from "next/server";import {getAuthenticatedUserId} from "@/lib/server/auth";type C={params:Promise<{id:string}>};
+export async function DELETE(_req:NextRequest,{params}:C){const{id}=await params;const a=await getAuthenticatedUserId();if(!a)return Response.json({error:"Unauthorized"},{status:401});const r=await a.supabase.from("memories").delete().eq("id",id).eq("user_id",a.userId);if(r.error)return Response.json({error:r.error.message},{status:500});return Response.json({deleted:true});}
