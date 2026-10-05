@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TRAZ_MODELS } from "@/lib/models";
@@ -35,7 +35,6 @@ function formatBytes(value: number | null) {
 }
 
 export default function Home() {
-  const supabase = useMemo(() => createClient(), []);
   const [view, setView] = useState("chats");
   const [chats, setChats] = useState<Chat[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -80,7 +79,7 @@ export default function Home() {
   async function loadKeys(){const r=await fetch("/api/keys");if(r.ok)setApiKeys((await r.json()).data||[])}
   async function createKey(){const name=window.prompt("API key name");if(!name)return;const r=await fetch("/api/keys",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const j=await r.json();if(!r.ok){setError(j.error||"Could not create API key");return}setNewApiKey(j.data.key);loadKeys()}
   async function revokeKey(id:string){await fetch("/api/keys/"+id,{method:"DELETE"});loadKeys()}
-  async function signOut(){await supabase.auth.signOut();location.href="/login"}
+  async function signOut(){const supabase=createClient();await supabase.auth.signOut();location.href="/login"}
 
   async function loadAll() {
     try {
@@ -195,6 +194,7 @@ export default function Home() {
       const ticketJson = await ticket.json();
       if (!ticket.ok) throw new Error(ticketJson.error || "Não foi possível preparar o upload.");
       const { path, token } = ticketJson.data;
+      const supabase=createClient();
       const uploaded = await supabase.storage.from("traz-files").uploadToSignedUrl(path, token, file);
       if (uploaded.error) throw new Error(uploaded.error.message);
 
@@ -207,6 +207,7 @@ export default function Home() {
       });
       const registeredJson = await registered.json();
       if (!registered.ok) {
+        const supabase=createClient();
         await supabase.storage.from("traz-files").remove([path]);
         throw new Error(registeredJson.error || "Não foi possível registrar o arquivo.");
       }
