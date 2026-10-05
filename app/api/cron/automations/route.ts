@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const cronSecret = req.headers.get("x-vercel-cron-secret");
   if (!secret || (auth !== `Bearer ${secret}` && cronSecret !== secret)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+  const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
   const { data: automations, error } = await admin.from("automations").select("*").eq("enabled", true).limit(50);
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
