@@ -1,0 +1,3 @@
+import {NextRequest} from "next/server";
+import {nextMonthlyDueDate,paymentDeadline} from "@/lib/billing/dates";
+export async function POST(request:NextRequest){const body=await request.json();const paidAt=new Date(body.paidAt);if(Number.isNaN(paidAt.getTime()))return Response.json({error:"Invalid paidAt."},{status:400});const due=nextMonthlyDueDate(paidAt);const deadline=paymentDeadline(due);return Response.json({paidAt:paidAt.toISOString(),dueAt:due.toISOString(),deadlineAt:deadline.toISOString()});}

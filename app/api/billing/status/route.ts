@@ -1,0 +1,2 @@
+import {NextRequest} from "next/server";
+export async function GET(request:NextRequest){const userId=request.headers.get("x-user-id");if(!userId)return Response.json({error:"Authentication required."},{status:401});return Response.json({status:"not_configured",message:"Persistent billing storage will be enabled with the database adapter."});}

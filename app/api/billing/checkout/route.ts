@@ -1,0 +1,2 @@
+import {NextRequest} from "next/server";
+export async function POST(request:NextRequest){const body=await request.json().catch(()=>({}));if(!body.plan)return Response.json({error:"Plan is required."},{status:400});return Response.json({error:"GoatPay checkout adapter is isolated and awaiting the exact account-side transaction configuration."},{status:501});}
