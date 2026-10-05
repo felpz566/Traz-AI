@@ -1,0 +1,6 @@
+import {GoogleGenAI} from "@google/genai"; import {env} from "../env";
+export type TrazMessage={role:"user"|"model";text:string};
+const client=()=>new GoogleGenAI({apiKey:env.aiToken});
+function contents(prompt:string,history:TrazMessage[]=[]){return [...history.map(m=>({role:m.role,parts:[{text:m.text}]})),{role:"user" as const,parts:[{text:prompt}]}]}
+export async function generateWithGemini(input:{prompt:string;history?:TrazMessage[];systemInstruction?:string}){const response=await client().models.generateContent({model:env.aiModel,contents:contents(input.prompt,input.history),config:input.systemInstruction?{systemInstruction:input.systemInstruction}:undefined});return {text:response.text??"",model:env.aiModel};}
+export async function streamWithGemini(input:{prompt:string;history?:TrazMessage[];systemInstruction?:string}){return client().models.generateContentStream({model:env.aiModel,contents:contents(input.prompt,input.history),config:input.systemInstruction?{systemInstruction:input.systemInstruction}:undefined});}
