@@ -5,7 +5,7 @@ export const runtime="nodejs";
 
 export async function GET(){
  const checks={
-  supabase:Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL&&process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY&&process.env.SUPABASE_SERVICE_ROLE_KEY),
+  supabase:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY&&process.env.SUPABASE_SERVICE_ROLE_KEY),
   ai:Boolean(process.env.IA_API_TOKEN),
   billing:Boolean(process.env.GOATPAY_API_TOKEN&&process.env.GOATPAY_WEBHOOK_SECRET),
  };
