@@ -1,0 +1,2 @@
+export type SubscriptionStatus="active"|"grace"|"canceled"|"past_due";
+export type Subscription={id:string;userId:string;plan:string;status:SubscriptionStatus;paidAt:string;dueAt:string;deadlineAt:string;lastTransactionHash?:string};
