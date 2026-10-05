@@ -9,7 +9,7 @@ export function routeTask(input:{prompt:string;mode?:ReasoningMode;hasFiles?:boo
  const complex=t.length>1400||/\b(architecture|arquitetura|prove|prova|analyze|analise|research|pesquise|compare)\b/.test(t);
  let preferred="traz-1-fast",reasoning=input.mode??"auto";
  if(input.mode==="fast")preferred="traz-1-fast";
- else if(input.mode==="deep-think"){preferred=plan==="ultra"?"traz-1-3-ultra":plan==="r"?"traz-r1":plan==="pro"?"traz-1-pro-reason":"traz-1-reason";reasoning="deep"}
+ else if(input.mode==="deep-think"){preferred=plan==="ultra"?"traz-1-3-ultra":plan==="r"?"traz-r1":plan==="pro"?"traz-1-pro-reason":"traz-1-reason";reasoning="deep-think"}
  else if(code)preferred=plan==="ultra"?"traz-ultra-code":plan==="r"?"traz-r1-code":plan==="pro"?"traz-1-pro-code":"traz-1-standard";
  else if(input.hasImage)preferred=plan==="ultra"?"traz-ultra-vision":plan==="pro"?"traz-1-pro-vision":"traz-1-vision";
  else if(complex||input.hasFiles)preferred=plan==="ultra"?"traz-1-3-ultra":plan==="r"?"traz-r1":"traz-1-standard";
