@@ -1,0 +1,2 @@
+import {getAuthenticatedUserId} from "@/lib/server/auth";
+export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){const auth=await getAuthenticatedUserId();if(!auth)return Response.json({error:"Unauthorized"},{status:401});const{id}=await params;const r=await auth.supabase.from("api_keys").update({revoked_at:new Date().toISOString()}).eq("id",id).eq("user_id",auth.userId);if(r.error)return Response.json({error:r.error.message},{status:500});return Response.json({ok:true});}
