@@ -1,14 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getAuthenticatedUserId} from "@/lib/server/auth";
-import {getGitHubUser,listGitHubRepos} from "@/lib/github";
+import {getGitHubAccessToken,getGitHubConnection} from "@/lib/github-oauth";
+import {listGitHubRepos} from "@/lib/github";
 export const runtime="nodejs";
-export async function GET(){
- const auth=await getAuthenticatedUserId();if(!auth)return NextResponse.json({error:"Unauthorized"},{status:401});
- try{const user=await getGitHubUser();return NextResponse.json({connected:true,user:{login:user.login,name:user.name,avatarUrl:user.avatar_url}})}
- catch(error){return NextResponse.json({connected:false,error:error instanceof Error?error.message:"GitHub is not configured"},{status:503})}
-}
-export async function POST(req:NextRequest){
- const auth=await getAuthenticatedUserId();if(!auth)return NextResponse.json({error:"Unauthorized"},{status:401});
- try{const user=await getGitHubUser();const repos=await listGitHubRepos();return NextResponse.json({connected:true,user:{login:user.login,name:user.name,avatarUrl:user.avatar_url},repositories:repos})}
- catch(error){return NextResponse.json({error:error instanceof Error?error.message:"GitHub connection failed"},{status:503})}
-}
+export async function GET(){const auth=await getAuthenticatedUserId();if(!auth)return NextResponse.json({error:"Unauthorized"},{status:401});try{const c=await getGitHubConnection(auth.userId);if(!c)return NextResponse.json({connected:false});return NextResponse.json({connected:true,user:{login:c.github_login,name:c.github_name,avatarUrl:c.github_avatar_url}})}catch(e){return NextResponse.json({connected:false,error:e instanceof Error?e.message:"GitHub connection failed"},{status:500})}}
+export async function POST(req:NextRequest){const auth=await getAuthenticatedUserId();if(!auth)return NextResponse.json({error:"Unauthorized"},{status:401});try{const token=await getGitHubAccessToken(auth.userId),c=await getGitHubConnection(auth.userId),repos=await listGitHubRepos(token);return NextResponse.json({connected:true,user:{login:c?.github_login,name:c?.github_name,avatarUrl:c?.github_avatar_url},repositories:repos})}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"GitHub is not connected"},{status:400})}}
