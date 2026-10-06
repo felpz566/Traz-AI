@@ -181,7 +181,7 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
         if (h.ok) { setMessages((await h.json()).data.messages || []); setAnswer(""); }
       }
       await loadAll();
-    } catch { setError("Não foi possível concluir a resposta."); }
+    } catch(e) { setError(e instanceof Error ? e.message : "Não foi possível concluir a resposta."); }
     finally { setLoading(false); }
   }
 
