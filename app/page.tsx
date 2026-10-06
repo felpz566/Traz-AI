@@ -17,7 +17,7 @@ type Memory = { id: string; scope: string; content: string };type GitHubRepo = {
 const nav = [
   ["Chats", "chats", Bot], ["Projects", "projects", FolderKanban], ["Files", "files", Files],
   ["Memory", "memory", MemoryStick], ["Agents", "agents", Users], ["Usage", "usage", BarChart3],
-  ["Image Studio", "image", ImageIcon], ["Code", "code", Code2], ["Lab", "lab", FlaskConical], ["Automations", "automations", Sparkles], ["Connectors", "connectors", GithubIcon], ["Settings", "settings", Settings],
+  ["Image Studio", "image", ImageIcon], ["Code", "code", Code2], ["Lab", "lab", FlaskConical], ["Automations", "automations", Sparkles], ["Connectors", "connectors", GitBranch], ["Settings", "settings", Settings],
 ] as const;
 
 const textExtensions = new Set(["txt","md","markdown","json","csv","ts","tsx","js","jsx","py","lua","luau","html","css","sql","xml","yaml","yml","toml","sh","env","log"]);
