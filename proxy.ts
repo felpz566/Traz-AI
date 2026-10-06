@@ -1,7 +1,10 @@
 import {type NextRequest} from "next/server";
 import {NextResponse} from "next/server";
 
-export function proxy(_request:NextRequest){
+export function proxy(request:NextRequest){
+  if(request.nextUrl.pathname === "/"){
+    return NextResponse.redirect(new URL("/home", request.url));
+  }
   return NextResponse.next();
 }
 
