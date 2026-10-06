@@ -18,7 +18,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string;f
    const text=new TextDecoder().decode(bytes);result=await generateWithGemini({prompt:question+"\n\nFILE: "+file.data.name+"\n"+text.slice(0,60000),systemInstruction:"You are TRAZ File Intelligence. Base your answer only on the supplied file. Clearly state when information is unavailable."});
   }else{
    const b64=Buffer.from(bytes).toString("base64");
-   const ai=await import("@google/genai");const client=new ai.GoogleGenAI({apiKey:process.env.IA_API_TOKEN!});
+   const ai=await import("@google/genai");const client=new ai.GoogleGenAI({apiKey:process.env.GEMINI_API_TOKEN!});
    const response=await client.models.generateContent({model:process.env.IA_MODEL||"gemini-3.8-flash",contents:[{role:"user",parts:[{text:question},{inlineData:{mimeType:mime,data:b64}}]}]});
    result={text:response.text||"",model:process.env.IA_MODEL||"gemini-3.8-flash"};
   }
