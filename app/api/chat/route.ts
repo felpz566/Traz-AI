@@ -57,7 +57,19 @@ export async function POST(request:NextRequest){
    return new Response(readable,{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-cache, no-transform","X-Avenix-Model":route.model,"X-Avenix-Reasoning":route.reasoning,...(conversationId?{"X-Avenix-Conversation-Id":conversationId}:{})}});
   }
   const result=await generateWithGemini({prompt,history:body.history,systemInstruction});
-  if(auth&&conversationId&&result.text){const touched=await auth.supabase.from("conversations").update({updated_at:new Date().toISOString()}).eq("id",conversationId).eq("user_id",auth.userId);if(touched.error)console.error("TRAZ conversation timestamp update failed",touched.error);try{await saveMemories(auth.supabase,auth.userId,prompt,conversationId,body.projectId)}catch(e){console.error("TRAZ memory extraction failed",e)}}
+  if(auth&&conversationId&&result.text){
+    const savedAssistant=await auth.supabase.from("messages").insert({
+      conversation_id:conversationId,
+      user_id:auth.userId,
+      role:"assistant",
+      content:result.text,
+      model:result.model
+    });
+    if(savedAssistant.error)throw new Error(`Could not save assistant message: ${savedAssistant.error.message}`);
+    const touched=await auth.supabase.from("conversations").update({updated_at:new Date().toISOString()}).eq("id",conversationId).eq("user_id",auth.userId);
+    if(touched.error)console.error("TRAZ conversation timestamp update failed",touched.error);
+    try{await saveMemories(auth.supabase,auth.userId,prompt,conversationId,body.projectId)}catch(e){console.error("TRAZ memory extraction failed",e)}
+  }
   if(auth) void recordAIEvent(auth.supabase,{userId:auth.userId,kind:"chat",route:"/api/chat",model:route.model,durationMs:Date.now()-started,success:true,metadata:{stream:false,reasoning:route.reasoning}});
   return Response.json({...result,route,conversationId});
  }catch(error){console.error("TRAZ chat error",error);return Response.json({error:error instanceof Error?error.message:"TRAZ could not complete the request."},{status:500})}
