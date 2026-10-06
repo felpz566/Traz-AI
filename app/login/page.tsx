@@ -1,8 +1,8 @@
 "use client";
-import {FormEvent,useState} from "react";
-import {useRouter} from "next/navigation";
+import {useState} from "react";
+
 export default function LoginPage(){
- const router=useRouter();const[email,setEmail]=useState("");const[password,setPassword]=useState("");const[signup,setSignup]=useState(false);const[busy,setBusy]=useState(false);const[error,setError]=useState("");
- async function submit(e:FormEvent){e.preventDefault();setBusy(true);setError("");const response=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password,signup})});const result=await response.json();if(!response.ok)setError(result.error??"Authentication failed");else router.push("/");setBusy(false)}
- return <main className="auth-shell"><form className="auth-card" onSubmit={submit}><div className="brand">TRAZ</div><h1>{signup?"Create your account":"Welcome back"}</h1><p className="muted">Intelligence, connected.</p><input className="input" type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} required/><input className="input" type="password" placeholder="Password" minLength={6} value={password} onChange={e=>setPassword(e.target.value)} required/><button className="primary" disabled={busy}>{busy?"Please wait…":signup?"Create account":"Sign in"}</button>{error&&<p className="error">{error}</p>}<button type="button" className="link-button" onClick={()=>setSignup(!signup)}>{signup?"Already have an account? Sign in":"New to TRAZ? Create an account"}</button></form></main>
+ const [busy,setBusy]=useState(false);
+ const login=()=>{setBusy(true);window.location.assign("/api/auth/login")};
+ return <main className="auth-shell"><div className="auth-card"><div className="brand">TRAZ</div><h1>Welcome to TRAZ</h1><p className="muted">Intelligence, connected.</p><button className="primary" onClick={login} disabled={busy}>{busy?"Connecting…":"Continue with Google"}</button></div></main>;
 }
