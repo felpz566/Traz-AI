@@ -39,6 +39,7 @@ create table if not exists public.conversations (
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.conversations(id) on delete cascade,
+  user_id uuid not null references public.app_users(id) on delete cascade,
   role text not null check (role in ('user','assistant','system')),
   content text not null,
   model text,
