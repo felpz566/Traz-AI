@@ -3,7 +3,8 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, GitBranch, CloudUpload, FolderOpen } from "lucide-react";
+import { usePathname, useRouter, useParams } from "next/navigation";
+import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, GitBranch, CloudUpload } from "lucide-react";
 import { TRAZ_MODELS } from "@/lib/models";
 
 type Chat = { id: string; title: string; updated_at: string };
@@ -44,6 +45,10 @@ function formatBytes(value: number | null) {
 }
 
 export default function Home() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const routeParams = useParams<{ id?: string }>();
+  const routeChatId = typeof routeParams?.id === "string" ? routeParams.id : undefined;
   const [view, setView] = useState("chats");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -148,6 +153,7 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
 
   async function openChat(id: string) {
     setActive(id); setView("chats"); setAnswer("");
+    if (pathname !== `/c/${id}`) router.push(`/c/${id}`);
     const r = await fetch("/api/conversations/" + id);
     if (r.ok) setMessages((await r.json()).data.messages || []);
   }
@@ -160,7 +166,7 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
   async function runLab(){if(!labPrompt.trim())return;setLoading(true);setError("");try{const r=await fetch("/api/lab/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:labPrompt})});const j=await r.json();if(!r.ok)throw new Error(j.error);setLabResult(j.data.text)}catch(e){setError(e instanceof Error?e.message:"Lab request failed")}finally{setLoading(false)}}
 
   function newChat() {
-    setActive(undefined); setMessages([]); setAnswer(""); setPrompt(""); setView("chats"); setSidebarOpen(false);
+    setActive(undefined); setMessages([]); setAnswer(""); setPrompt(""); setView("chats"); setSidebarOpen(false); router.push("/home");
   }
 
   async function send(e: FormEvent) {
@@ -215,18 +221,19 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
         setAnswer("");
       }
 
+      if (id && streamedAnswer) {
+        const persisted = await fetch("/api/conversations/" + id + "/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "assistant", content: streamedAnswer, model: r.headers.get("X-Avenix-Model") || undefined }),
+        });
+        const persistedJson = await persisted.json().catch(() => null);
+        if (!persisted.ok) throw new Error(persistedJson?.error || "A resposta foi gerada, mas não pôde ser salva no chat.");
+      }
+
       if (id) {
         const h = await fetch("/api/conversations/" + id);
-        if (h.ok) {
-          const synced = (await h.json()).data.messages || [];
-          setMessages((currentMessages) => {
-            const persistedAssistant = synced.some(
-              (message: Message) =>
-                message.role === "assistant" && message.content === streamedAnswer
-            );
-            return persistedAssistant ? synced : currentMessages;
-          });
-        }
+        if (h.ok) setMessages((await h.json()).data.messages || []);
       }
       await loadAll();
     } catch(e) { setError(e instanceof Error ? e.message : "Não foi possível concluir a resposta."); }
@@ -314,11 +321,57 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
   const current = chats.find((c) => c.id === active);
   const selectedProjectName = projects.find((p) => p.id === selectedProject)?.name;
 
+  const routeByView: Record<string, string> = {
+    chats: "/home",
+    projects: "/projetos",
+    files: "/arquivos",
+    memory: "/memoria",
+    agents: "/agentes",
+    usage: "/uso",
+    image: "/imagem",
+    code: "/codigo",
+    lab: "/lab",
+    automations: "/automacoes",
+    connectors: "/conectores",
+    settings: "/configuracoes",
+  };
+
+  useEffect(() => {
+    const routeViews: Record<string, string> = {
+      "/home": "chats",
+      "/projetos": "projects",
+      "/arquivos": "files",
+      "/memoria": "memory",
+      "/agentes": "agents",
+      "/uso": "usage",
+      "/imagem": "image",
+      "/codigo": "code",
+      "/lab": "lab",
+      "/automacoes": "automations",
+      "/conectores": "connectors",
+      "/configuracoes": "settings",
+    };
+
+    if (pathname === "/" || pathname === "") {
+      setView("chats");
+      return;
+    }
+
+    if (pathname.startsWith("/c/") && routeChatId) {
+      if (active !== routeChatId) openChat(routeChatId);
+      return;
+    }
+
+    const nextView = routeViews[pathname];
+    if (nextView) setView(nextView);
+  }, [pathname, routeChatId]);
+
+
   return <div className="traz-shell">
     <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
       <div className="brand">TRAZ</div>
       <button className="new-chat" onClick={newChat}><Plus size={16}/> New Chat</button>
-      <nav className="nav">{nav.map(([label, id, Icon]) => <button className={view === id ? "active" : ""} key={id} onClick={() => { setView(id); setSidebarOpen(false); }}><Icon size={16}/>{label}</button>)}</nav>
+      <nav className="nav">{nav.map(([label, id, Icon]) => <button className={view === id ? "active" : ""} key={id} onClick={() => { setView(id); setSidebarOpen(false); router.push(routeByView[id] || "/home"); }}><Icon size={16}/>{label}</button>)}</nav>
       <div className="chat-history">{chats.slice(0, 12).map((c) => <div className={active === c.id ? "chat-row selected" : "chat-row"} key={c.id}><button onClick={() => openChat(c.id)}>{c.title || "New chat"}</button><button className="icon-btn" onClick={() => deleteChat(c.id)}><Trash2 size={13}/></button></div>)}</div>
       <div className="muted side-foot">Intelligence, connected.</div>
     </aside>
