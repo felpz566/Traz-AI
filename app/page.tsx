@@ -205,7 +205,7 @@ export default function Home() {
       });
       const registeredJson = await registered.json();
       if (!registered.ok) {
-        await fetch(`/api/projects/${selectedProject}/files/${registeredJson.data?.id || ""}`, { method: "DELETE" });
+        await fetch(`/api/projects/${selectedProject}/files/upload-url`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) });
         throw new Error(registeredJson.error || "Não foi possível registrar o arquivo.");
       }
       await loadFiles(selectedProject);
