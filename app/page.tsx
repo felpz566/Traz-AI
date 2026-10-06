@@ -137,9 +137,19 @@ async function disconnectGitHub(){setGithubBusy(true);try{const r=await fetch("/
     try {
       const r = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: githubContext ? `${p}\\n\\n[Contexto do GitHub]\\n${githubContext}` : p, history: messages.filter((m)=>m.role!=="system").slice(-20).map((m)=>({role:m.role==="assistant"?"model":"user",text:m.content})), stream: true, conversationId: id, mode: reasoning, model: selectedModel === "auto" ? undefined : selectedModel }),
+        body: JSON.stringify({
+          prompt: githubContext ? `${p}\\n\\n[Contexto do GitHub]\\n${githubContext}` : p,
+          history: messages.filter((m)=>m.role!=="system").slice(-20).map((m)=>({role:m.role==="assistant"?"model":"user",text:m.content})),
+          stream: true,
+          conversationId: id,
+          mode: reasoning,
+          model: selectedModel === "auto" ? undefined : selectedModel
+        }),
       });
-      if (!r.ok) throw new Error();
+      if (!r.ok) {
+        const body = await r.json().catch(() => null);
+        throw new Error(body?.error || "Não foi possível concluir a resposta.");
+      }
       id = r.headers.get("X-Avenix-Conversation-Id") || id;
       if (id && !active) { setActive(id); await loadAll(); }
       const reader = r.body?.getReader();
