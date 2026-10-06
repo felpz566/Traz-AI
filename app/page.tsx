@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, GitBranch } from "lucide-react";
+import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, GitBranch, CloudUpload, FolderOpen } from "lucide-react";
 import { TRAZ_MODELS } from "@/lib/models";
 
 type Chat = { id: string; title: string; updated_at: string };
@@ -66,6 +66,8 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [draggingFiles, setDraggingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [imagePrompt,setImagePrompt]=useState("");
   const [imageResult,setImageResult]=useState("");
@@ -336,9 +338,24 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
         {view === "files" && <Panel title="Files">
           <div className="file-toolbar">
             <select className="select project-select" value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}><option value="">Select a project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-            <label className={uploading ? "upload-button disabled" : "upload-button"}><Upload size={16}/>{uploading ? "Uploading…" : "Upload file"}<input type="file" hidden disabled={uploading || !selectedProject} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadFile(file); e.currentTarget.value = ""; }}/></label>
           </div>
           {selectedProjectName && <p className="muted file-context">{selectedProjectName} · {files.length} file{files.length === 1 ? "" : "s"}</p>}
+          <div
+            className={draggingFiles ? "traz-dropbox dragging" : "traz-dropbox"}
+            onDragEnter={(e) => { e.preventDefault(); if (selectedProject && !uploading) setDraggingFiles(true); }}
+            onDragOver={(e) => e.preventDefault()}
+            onDragLeave={(e) => { e.preventDefault(); if (e.currentTarget === e.target) setDraggingFiles(false); }}
+            onDrop={(e) => { e.preventDefault(); setDraggingFiles(false); if (!selectedProject) { setError("Selecione um projeto antes de enviar arquivos."); return; } if (uploading) return; Array.from(e.dataTransfer.files).forEach(uploadFile); }}
+            onClick={() => { if (selectedProject && !uploading) fileInputRef.current?.click(); }}
+          >
+            <div className="traz-dropbox-icon"><CloudUpload size={25}/></div>
+            <div className="traz-dropbox-copy">
+              <strong>{uploading ? "Enviando arquivo…" : draggingFiles ? "Solte para enviar" : "Arraste seus arquivos aqui"}</strong>
+              <span>{uploading ? "O TRAZ está armazenando seu arquivo com segurança." : selectedProject ? "ou clique para escolher do dispositivo" : "Selecione um projeto primeiro"}</span>
+            </div>
+            <div className="traz-dropbox-meta"><span>Até 50 MB por arquivo</span><span>•</span><span>Qualquer formato</span></div>
+            <input ref={fileInputRef} type="file" hidden multiple disabled={uploading || !selectedProject} onChange={(e) => { Array.from(e.target.files || []).forEach(uploadFile); e.currentTarget.value = ""; }}/>
+          </div>
           <div className="file-layout">
             <div className="file-list">{files.map((file) => <div className={selectedFile?.id === file.id ? "file-row selected" : "file-row"} key={file.id}><button className="file-main" onClick={() => openFile(file)}><FileText size={17}/><span><b>{file.name}</b><small>{file.path} · {formatBytes(file.size_bytes)}</small></span></button><button className="icon-btn" onClick={() => deleteFile(file)} title="Delete"><Trash2 size={14}/></button></div>)}{!files.length && <Empty text={selectedProject ? "No files in this project yet." : "Select a project to manage files."}/>}</div>
             <div className="file-viewer">{selectedFile ? <><div className="viewer-head"><div><b>{selectedFile.name}</b><span>{formatBytes(selectedFile.size_bytes)}</span></div><div><a className="viewer-action" href={previewUrl || "#"} target="_blank" rel="noreferrer"><Download size={15}/> Open</a><button className="icon-btn" onClick={() => { setSelectedFile(null); setPreviewUrl(""); setTextPreview(""); }}><X size={15}/></button></div></div>{previewUrl && textPreview ? <pre className="text-preview">{textPreview}</pre> : previewUrl && selectedFile.mime_type?.startsWith("image/") ? <img className="media-preview" src={previewUrl} alt={selectedFile.name}/> : previewUrl && selectedFile.mime_type === "application/pdf" ? <iframe className="pdf-preview" src={previewUrl} title={selectedFile.name}/> : previewUrl && selectedFile.mime_type?.startsWith("video/") ? <video className="media-preview" src={previewUrl} controls/> : previewUrl && selectedFile.mime_type?.startsWith("audio/") ? <audio className="audio-preview" src={previewUrl} controls/> : <div className="empty">Use Open to view this file.</div>}</> : <Empty text="Select a file to open the TRAZ File Viewer."/>}</div>
