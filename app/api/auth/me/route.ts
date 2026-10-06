@@ -1,8 +1,9 @@
-import {createClient} from "@/lib/supabase/server";
+import {getAuthenticatedUserId} from "@/lib/server/auth";
 
 export async function GET(){
-  const supabase=await createClient();
-  const {data,error}=await supabase.auth.getUser();
-  if(error||!data.user) return Response.json({authenticated:false},{status:401});
-  return Response.json({authenticated:true,user:{id:data.user.id,email:data.user.email}});
+  const auth=await getAuthenticatedUserId();
+  if(!auth)return Response.json({authenticated:false},{status:401});
+  const user=await auth.supabase.from("app_users").select("id,email,name,avatar_url").eq("id",auth.userId).maybeSingle();
+  if(user.error||!user.data)return Response.json({authenticated:false},{status:401});
+  return Response.json({authenticated:true,user:user.data});
 }
