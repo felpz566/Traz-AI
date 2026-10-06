@@ -178,14 +178,43 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
       const reader = r.body?.getReader();
       if (!reader) throw new Error();
       const decoder = new TextDecoder();
+      let streamedAnswer = "";
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
-        setAnswer((v) => v + decoder.decode(value, { stream: true }));
+        const chunk = decoder.decode(value, { stream: true });
+        streamedAnswer += chunk;
+        setAnswer(streamedAnswer);
       }
+      const finalChunk = decoder.decode();
+      if (finalChunk) {
+        streamedAnswer += finalChunk;
+        setAnswer(streamedAnswer);
+      }
+
+      // Keep the streamed response visible immediately instead of replacing it
+      // with a potentially stale conversation snapshot while the server is
+      // still persisting the assistant message.
+      if (streamedAnswer) {
+        setMessages((currentMessages) => [
+          ...currentMessages,
+          { id: "stream-" + Date.now(), role: "assistant", content: streamedAnswer },
+        ]);
+        setAnswer("");
+      }
+
       if (id) {
         const h = await fetch("/api/conversations/" + id);
-        if (h.ok) { setMessages((await h.json()).data.messages || []); setAnswer(""); }
+        if (h.ok) {
+          const synced = (await h.json()).data.messages || [];
+          setMessages((currentMessages) => {
+            const persistedAssistant = synced.some(
+              (message: Message) =>
+                message.role === "assistant" && message.content === streamedAnswer
+            );
+            return persistedAssistant ? synced : currentMessages;
+          });
+        }
       }
       await loadAll();
     } catch(e) { setError(e instanceof Error ? e.message : "Não foi possível concluir a resposta."); }
