@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, GitBranch } from "lucide-react";
 import { TRAZ_MODELS } from "@/lib/models";
 
@@ -21,6 +23,14 @@ const nav = [
 ] as const;
 
 const textExtensions = new Set(["txt","md","markdown","json","csv","ts","tsx","js","jsx","py","lua","luau","html","css","sql","xml","yaml","yml","toml","sh","env","log"]);
+
+function MarkdownMessage({content}:{content:string}) {
+  return (
+    <div className="markdown-body">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    </div>
+  );
+}
 
 function extension(name: string) {
   return name.split(".").pop()?.toLowerCase() || "";
@@ -316,7 +326,7 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
       <header className="topbar"><div className="topbar-left"><button className="mobile-menu" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}><Menu size={20}/></button><span className="muted">{view === "chats" ? (current?.title || "TRAZ AI") : nav.find((n) => n[1] === view)?.[0]}</span></div><span className="status"><Sparkles size={14}/> Connected</span></header>
       <section className="content">
         {view === "chats" && <>
-          <div className="chat-area">{messages.length === 0 && !answer && !loading ? <div className="hero"><h1>What will you build?</h1><p className="muted">Intelligence, connected.</p></div> : <>{messages.map((m, i) => <div className={`message ${m.role}`} key={m.id || i}><span className="message-role">{m.role === "user" ? "You" : "TRAZ"}</span><div>{m.content}</div></div>)}{(answer || loading) && <div className="message assistant"><span className="message-role">TRAZ</span><div>{answer || "Thinking…"}</div></div>}</>}</div>
+          <div className="chat-area">{messages.length === 0 && !answer && !loading ? <div className="hero"><h1>What will you build?</h1><p className="muted">Intelligence, connected.</p></div> : <>{messages.map((m, i) => <div className={`message ${m.role}`} key={m.id || i}><span className="message-role">{m.role === "user" ? "You" : "TRAZ"}</span><div>{m.role === "assistant" ? <MarkdownMessage content={m.content} /> : m.content}</div></div>)}{(answer || loading) && <div className="message assistant"><span className="message-role">TRAZ</span><div>{answer ? <MarkdownMessage content={answer} /> : "Thinking…"}</div></div>}</>}</div>
           <form className="composer" onSubmit={send}><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask TRAZ anything…"/><div className="composer-footer">{githubContext&&<button type="button" className="secondary" onClick={()=>setView("connectors")} title="GitHub context"><GitBranch size={15}/> GitHub</button>}<select className="select" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}><option value="auto">Model: Auto</option>{TRAZ_MODELS.filter((model) => { const rank={free:0,pro:1,r:2,ultra:3} as const; const plan=(usage?.plan||"free") as keyof typeof rank; return rank[model.plan] <= rank[plan]; }).map((model) => <option key={model.id} value={model.id}>{model.id}</option>)}</select><select className="select" value={reasoning} onChange={(e) => setReasoning(e.target.value as typeof reasoning)}><option value="auto">Auto</option><option value="fast">Fast</option><option value="think">Think</option><option value="think-more">Think More</option><option value="deep-think">Deep Think</option></select><button className="send" disabled={loading}><ArrowUp size={17}/></button></div></form>
           {error && <p className="error">{error}</p>}
         </>}
