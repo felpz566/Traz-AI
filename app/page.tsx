@@ -193,9 +193,8 @@ export default function Home() {
       const ticketJson = await ticket.json();
       if (!ticket.ok) throw new Error(ticketJson.error || "Não foi possível preparar o upload.");
       const { path, token } = ticketJson.data;
-      const supabase=createClient();
-      const uploaded = await supabase.storage.from("traz-files").uploadToSignedUrl(path, token, file);
-      if (uploaded.error) throw new Error(uploaded.error.message);
+      const uploaded = await fetch(ticketJson.data.signedUrl, { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file });
+      if (!uploaded.ok) throw new Error("Não foi possível enviar o arquivo para o armazenamento.");
 
       const registered = await fetch(`/api/projects/${selectedProject}/files`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -206,8 +205,7 @@ export default function Home() {
       });
       const registeredJson = await registered.json();
       if (!registered.ok) {
-        const supabase=createClient();
-        await supabase.storage.from("traz-files").remove([path]);
+        await fetch(`/api/projects/${selectedProject}/files/${registeredJson.data?.id || ""}`, { method: "DELETE" });
         throw new Error(registeredJson.error || "Não foi possível registrar o arquivo.");
       }
       await loadFiles(selectedProject);
