@@ -78,7 +78,23 @@ export default function Home() {
 
   async function loadKeys(){const r=await fetch("/api/keys");if(r.ok)setApiKeys((await r.json()).data||[])}  function connectGitHub(){window.location.href="/api/connectors/github/oauth/start"}  async function loadGitHub(){const r=await fetch("/api/connectors/github");if(r.ok)setGithub(await r.json())}
 async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=await fetch("/api/connectors/github",{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error||"GitHub refresh failed");setGithub(j);if(j.repositories?.length&&!githubRepo)setGithubRepo(j.repositories[0].full_name)}catch(e){setError(e instanceof Error?e.message:"GitHub refresh failed")}finally{setGithubBusy(false)}}
-async function disconnectGitHub(){setGithubBusy(true);try{const r=await fetch("/api/connectors/github/disconnect",{method:"POST"});if(!r.ok)throw new Error();setGithub({connected:false});setGithubRepo("");setGithubContext("")}catch{setError("Could not disconnect GitHub")}finally{setGithubBusy(false)}}  async function addGitHubFile(){if(!githubRepo||!githubPath.trim())return;setGithubBusy(true);setError("");try{const [owner,repo]=githubRepo.split("/");const r=await fetch(`/api/connectors/github/repos?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(githubPath.trim())}`);const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not read GitHub file");const content=j.content?.content;const decoded=typeof content==="string"?atob(content.replace(/\/g,"")):"";setGithubContext(`GitHub: ${githubRepo}/${githubPath.trim()}\\${decoded}`);setView("chats");setPrompt((p)=>p||"Analise o arquivo do GitHub que adicionei ao contexto.")}catch(e){setError(e instanceof Error?e.message:"Could not read GitHub file")}finally{setGithubBusy(false)}}
+  async function disconnectGitHub(){setGithubBusy(true);try{const r=await fetch("/api/connectors/github/disconnect",{method:"POST"});if(!r.ok)throw new Error();setGithub({connected:false});setGithubRepo("");setGithubContext("")}catch{setError("Could not disconnect GitHub")}finally{setGithubBusy(false)}}
+  async function addGitHubFile(){
+    if(!githubRepo||!githubPath.trim())return;
+    setGithubBusy(true);setError("");
+    try{
+      const [owner,repo]=githubRepo.split("/");
+      const r=await fetch(`/api/connectors/github/repos?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(githubPath.trim())}`);
+      const j=await r.json();
+      if(!r.ok)throw new Error(j.error||"Could not read GitHub file");
+      const content=j.content?.content;
+      const decoded=typeof content==="string"?atob(content.replace(/\\n/g,"")):"";
+      setGithubContext(`GitHub: ${githubRepo}/${githubPath.trim()}\\n\\n${decoded}`);
+      setView("chats");
+      setPrompt((p)=>p||"Analise o arquivo do GitHub que adicionei ao contexto.");
+    }catch(e){setError(e instanceof Error?e.message:"Could not read GitHub file")}
+    finally{setGithubBusy(false)}
+  }
   async function createKey(){const name=window.prompt("API key name");if(!name)return;const r=await fetch("/api/keys",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const j=await r.json();if(!r.ok){setError(j.error||"Could not create API key");return}setNewApiKey(j.data.key);loadKeys()}
   async function revokeKey(id:string){await fetch("/api/keys/"+id,{method:"DELETE"});loadKeys()}
   async function signOut(){await fetch("/api/auth/signout",{method:"POST"});location.href="/login"}
