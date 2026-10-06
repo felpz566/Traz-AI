@@ -57,3 +57,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     },
   });
 }
+
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: projectId } = await params;
+  const auth = await getAuthenticatedUserId();
+  if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const project = await auth.supabase.from("projects").select("id").eq("id", projectId).eq("user_id", auth.userId).maybeSingle();
+  if (project.error || !project.data) return Response.json({ error: "Project not found" }, { status: 404 });
+  const body = await request.json().catch(() => ({}));
+  const path = typeof body.path === "string" ? body.path.trim() : "";
+  if (!path || !path.startsWith(auth.userId + "/" + projectId + "/")) return Response.json({ error: "Invalid storage path" }, { status: 400 });
+  const removed = await auth.supabase.storage.from(BUCKET).remove([path]);
+  if (removed.error) return Response.json({ error: removed.error.message }, { status: 500 });
+  return Response.json({ ok: true });
+}
