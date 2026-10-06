@@ -16,11 +16,38 @@ export async function POST(request: NextRequest, { params }: Context) {
   const { id } = await params;
   const result = await getConversationForUser(id);
   if (!result) return Response.json({ error: "Conversation not found" }, { status: 404 });
+
   const body = await request.json().catch(() => ({}));
-  if (typeof body.content !== "string" || !body.content.trim()) return Response.json({ error: "content is required" }, { status: 400 });
-  const role = body.role === "assistant" ? "assistant" : "user";
-  const inserted = await result.supabase.from("messages").insert({ conversation_id: id, role, content: body.content.trim(), model: typeof body.model === "string" ? body.model : null }).select().single();
-  if (inserted.error) return Response.json({ error: inserted.error.message }, { status: 500 });
-  await result.supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", result.userId);
+  const role = body.role === "assistant" || body.role === "system" ? body.role : null;
+  const content = typeof body.content === "string" ? body.content : "";
+  const model = typeof body.model === "string" ? body.model : null;
+
+  if (!role) return Response.json({ error: "Invalid message role." }, { status: 400 });
+  if (!content.trim()) return Response.json({ error: "Message content is required." }, { status: 400 });
+
+  const inserted = await result.supabase.from("messages").insert({
+    conversation_id: id,
+    user_id: result.userId,
+    role,
+    content: content.trim(),
+    model,
+  }).select("*").single();
+
+  if (inserted.error || !inserted.data) {
+    console.error("TRAZ message persistence failed", inserted.error);
+    return Response.json(
+      { error: `Could not save message: ${inserted.error?.message || "unknown database error"}` },
+      { status: 500 },
+    );
+  }
+
+  const touched = await result.supabase
+    .from("conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", result.userId);
+
+  if (touched.error) console.error("TRAZ conversation timestamp update failed", touched.error);
+
   return Response.json({ data: inserted.data }, { status: 201 });
 }
