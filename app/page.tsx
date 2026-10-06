@@ -192,7 +192,7 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
         throw new Error(body?.error || "Não foi possível concluir a resposta.");
       }
       id = r.headers.get("X-Avenix-Conversation-Id") || id;
-      if (id && !active) { setActive(id); await loadAll(); }
+      if (id && !active) { setActive(id); router.push(`/c/${id}`); await loadAll(); }
       const reader = r.body?.getReader();
       if (!reader) throw new Error();
       const decoder = new TextDecoder();
