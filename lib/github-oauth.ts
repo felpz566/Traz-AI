@@ -1,4 +1,4 @@
-import {createCipheriv,createDecipheriv,createHash,randomBytes} from "node:crypto";
+import {createCipheriv,createDecipheriv,createHash,createHmac,randomBytes,timingSafeEqual} from "node:crypto";
 import {createAdminClient} from "@/lib/supabase/admin";
 import {getGitHubUser} from "@/lib/github";
 const TOKEN_URL="https://github.com/login/oauth/access_token";
@@ -8,7 +8,8 @@ function dec(v:string){const [ver,iv,tag,data]=v.split(".");if(ver!=="v1")throw 
 function clientId(){const v=process.env.GITHUB_CLIENT_ID;if(!v)throw new Error("GITHUB_CLIENT_ID is not configured");return v;}
 function clientSecret(){const v=process.env.GITHUB_CLIENT_SECRET;if(!v)throw new Error("GITHUB_CLIENT_SECRET is not configured");return v;}
 export function githubRedirectUri(){return `${process.env.TRAZ_APP_URL||"http://localhost:3000"}/api/connectors/github/callback`;}
-export function createGitHubState(){return randomBytes(32).toString("base64url");}
+export function createGitHubState(userId:string){const payload=`${userId}.${Date.now()}.${randomBytes(24).toString("base64url")}`;const sig=createHmac("sha256",key()).update(payload).digest("base64url");return `${payload}.${sig}`;}
+export function verifyGitHubState(state:string,userId:string){const parts=state.split(".");if(parts.length!==4)return false;const [stateUserId,issuedAt,nonce,sig]=parts;if(stateUserId!==userId||!issuedAt||!nonce||!sig)return false;const age=Date.now()-Number(issuedAt);if(!Number.isFinite(age)||age<0||age>10*60*1000)return false;const expected=createHmac("sha256",key()).update(`${stateUserId}.${issuedAt}.${nonce}`).digest("base64url");try{return timingSafeEqual(Buffer.from(sig),Buffer.from(expected));}catch{return false;}}
 export function getGitHubAuthorizeUrl(state:string){const p=new URLSearchParams({client_id:clientId(),redirect_uri:githubRedirectUri(),state,scope:"read:user user:email repo offline_access"});return `https://github.com/login/oauth/authorize?${p}`;}
 export async function exchangeGitHubCode(code:string){const r=await fetch(TOKEN_URL,{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify({client_id:clientId(),client_secret:clientSecret(),code,redirect_uri:githubRedirectUri()})});const d=await r.json();if(!r.ok||d.error||!d.access_token)throw new Error(d.error_description||d.error||"GitHub authorization failed");return d;}
 export async function saveGitHubConnection(userId:string,d:any){const user=await getGitHubUser(d.access_token);const db=createAdminClient(),now=Date.now();const {error}=await db.from("github_connections").upsert({user_id:userId,github_user_id:user.id,github_login:user.login,github_name:user.name,github_avatar_url:user.avatar_url,access_token_enc:enc(d.access_token),refresh_token_enc:d.refresh_token?enc(d.refresh_token):null,access_token_expires_at:d.expires_in?new Date(now+d.expires_in*1000).toISOString():null,refresh_token_expires_at:d.refresh_token_expires_in?new Date(now+d.refresh_token_expires_in*1000).toISOString():null,scope:d.scope||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error)throw new Error(error.message);return user;}
