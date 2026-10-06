@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu } from "lucide-react";
+import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu, Github } from "lucide-react";
 import { TRAZ_MODELS } from "@/lib/models";
 
 type Chat = { id: string; title: string; updated_at: string };
@@ -12,12 +12,12 @@ type Usage = { plan: string; usage: { messages: number; files: number; projects:
 type Observability = { events: number; successRate: number; averageLatencyMs: number; models: string[] };
 type Automation = { id:string; name:string; prompt:string; schedule:"hourly"|"daily"|"weekly"; enabled:boolean; last_run_at:string|null };
 type Message = { id?: string; role: "user" | "assistant" | "system"; content: string };
-type Memory = { id: string; scope: string; content: string };
+type Memory = { id: string; scope: string; content: string };\ntype GitHubRepo = { id:number; full_name:string; name:string; private:boolean; default_branch:string; html_url:string; description:string|null };\ntype GitHubConnection = { connected:boolean; user?:{login:string;name:string|null;avatarUrl:string}; error?:string; repositories?:GitHubRepo[] };
 
 const nav = [
   ["Chats", "chats", Bot], ["Projects", "projects", FolderKanban], ["Files", "files", Files],
   ["Memory", "memory", MemoryStick], ["Agents", "agents", Users], ["Usage", "usage", BarChart3],
-  ["Image Studio", "image", ImageIcon], ["Code", "code", Code2], ["Lab", "lab", FlaskConical], ["Automations", "automations", Sparkles], ["Settings", "settings", Settings],
+  ["Image Studio", "image", ImageIcon], ["Code", "code", Code2], ["Lab", "lab", FlaskConical], ["Automations", "automations", Sparkles], ["Connectors", "connectors", Github], ["Settings", "settings", Settings],
 ] as const;
 
 const textExtensions = new Set(["txt","md","markdown","json","csv","ts","tsx","js","jsx","py","lua","luau","html","css","sql","xml","yaml","yml","toml","sh","env","log"]);
@@ -69,14 +69,14 @@ export default function Home() {
   const [memoryQuery,setMemoryQuery]=useState("");
   const [memoryResults,setMemoryResults]=useState<(Memory & {similarity?:number})[]>([]);
   const [apiKeys,setApiKeys]=useState<{id:string;name:string;key_prefix:string;created_at:string;revoked_at?:string|null}[]>([]);
-  const [newApiKey,setNewApiKey]=useState("");
+  const [newApiKey,setNewApiKey]=useState("");\n  const [github,setGithub]=useState<GitHubConnection|null>(null);\n  const [githubRepo,setGithubRepo]=useState("");\n  const [githubPath,setGithubPath]=useState("");\n  const [githubContext,setGithubContext]=useState("");\n  const [githubBusy,setGithubBusy]=useState(false);
 
   async function loadAutomations(){const r=await fetch("/api/automations");if(r.ok)setAutomations((await r.json()).data||[])}
   async function createAutomation(){const name=window.prompt("Automation name");if(!name)return;const prompt=window.prompt("What should TRAZ run?");if(!prompt)return;const schedule=window.prompt("Schedule: hourly, daily or weekly","daily");if(!["hourly","daily","weekly"].includes(schedule||""))return;const r=await fetch("/api/automations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,prompt,schedule})});const j=await r.json();if(!r.ok){setError(j.error||"Could not create automation");return}loadAutomations()}
   async function toggleAutomation(a:Automation){await fetch("/api/automations/"+a.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled:!a.enabled})});loadAutomations()}
   async function deleteAutomation(id:string){await fetch("/api/automations/"+id,{method:"DELETE"});loadAutomations()}
 
-  async function loadKeys(){const r=await fetch("/api/keys");if(r.ok)setApiKeys((await r.json()).data||[])}
+  async function loadKeys(){const r=await fetch("/api/keys");if(r.ok)setApiKeys((await r.json()).data||[])}\n  async function connectGitHub(){setGithubBusy(true);setError("");try{const r=await fetch("/api/connectors/github",{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error||"GitHub connection failed");setGithub(j);if(j.repositories?.length)setGithubRepo(j.repositories[0].full_name)}catch(e){setGithub({connected:false,error:e instanceof Error?e.message:"GitHub connection failed"})}finally{setGithubBusy(false)}}\n  async function loadGitHub(){const r=await fetch("/api/connectors/github");if(r.ok)setGithub(await r.json())}\n  async function addGitHubFile(){if(!githubRepo||!githubPath.trim())return;setGithubBusy(true);setError("");try{const [owner,repo]=githubRepo.split("/");const r=await fetch(`/api/connectors/github/repos?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(githubPath.trim())}`);const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not read GitHub file");const content=j.content?.content;const decoded=typeof content==="string"?atob(content.replace(/\\n/g,"")):"";setGithubContext(`GitHub: ${githubRepo}/${githubPath.trim()}\\n\\n${decoded}`);setView("chats");setPrompt((p)=>p||"Analise o arquivo do GitHub que adicionei ao contexto.")}catch(e){setError(e instanceof Error?e.message:"Could not read GitHub file")}finally{setGithubBusy(false)}}
   async function createKey(){const name=window.prompt("API key name");if(!name)return;const r=await fetch("/api/keys",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const j=await r.json();if(!r.ok){setError(j.error||"Could not create API key");return}setNewApiKey(j.data.key);loadKeys()}
   async function revokeKey(id:string){await fetch("/api/keys/"+id,{method:"DELETE"});loadKeys()}
   async function signOut(){await fetch("/api/auth/signout",{method:"POST"});location.href="/login"}
@@ -106,7 +106,7 @@ export default function Home() {
     if (r.ok) setFiles((await r.json()).data || []);
   }
 
-  useEffect(() => { loadAll(); loadKeys(); }, []);
+  useEffect(() => { loadAll(); loadKeys(); loadGitHub(); }, []);
   useEffect(() => { loadFiles(selectedProject); setSelectedFile(null); setPreviewUrl(""); setTextPreview(""); }, [selectedProject]);
 
   async function openChat(id: string) {
@@ -135,7 +135,7 @@ export default function Home() {
     try {
       const r = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: p, stream: true, conversationId: id, mode: reasoning, model: selectedModel === "auto" ? undefined : selectedModel }),
+        body: JSON.stringify({ prompt: githubContext ? `${p}\\n\\n[Contexto do GitHub]\\n${githubContext}` : p, history: messages.filter((m)=>m.role!=="system").slice(-20).map((m)=>({role:m.role==="assistant"?"model":"user",text:m.content})), stream: true, conversationId: id, mode: reasoning, model: selectedModel === "auto" ? undefined : selectedModel }),
       });
       if (!r.ok) throw new Error();
       id = r.headers.get("X-Avenix-Conversation-Id") || id;
@@ -253,7 +253,7 @@ export default function Home() {
       <section className="content">
         {view === "chats" && <>
           <div className="chat-area">{messages.length === 0 && !answer && !loading ? <div className="hero"><h1>What will you build?</h1><p className="muted">Intelligence, connected.</p></div> : <>{messages.map((m, i) => <div className={`message ${m.role}`} key={m.id || i}><span className="message-role">{m.role === "user" ? "You" : "TRAZ"}</span><div>{m.content}</div></div>)}{(answer || loading) && <div className="message assistant"><span className="message-role">TRAZ</span><div>{answer || "Thinking…"}</div></div>}</>}</div>
-          <form className="composer" onSubmit={send}><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask TRAZ anything…"/><div className="composer-footer"><select className="select" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}><option value="auto">Model: Auto</option>{TRAZ_MODELS.filter((model) => { const rank={free:0,pro:1,r:2,ultra:3} as const; const plan=(usage?.plan||"free") as keyof typeof rank; return rank[model.plan] <= rank[plan]; }).map((model) => <option key={model.id} value={model.id}>{model.id}</option>)}</select><select className="select" value={reasoning} onChange={(e) => setReasoning(e.target.value as typeof reasoning)}><option value="auto">Auto</option><option value="fast">Fast</option><option value="think">Think</option><option value="think-more">Think More</option><option value="deep-think">Deep Think</option></select><button className="send" disabled={loading}><ArrowUp size={17}/></button></div></form>
+          <form className="composer" onSubmit={send}><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask TRAZ anything…"/><div className="composer-footer">{githubContext&&<button type="button" className="secondary" onClick={()=>setView("connectors")} title="GitHub context"><Github size={15}/> GitHub</button>}<select className="select" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}><option value="auto">Model: Auto</option>{TRAZ_MODELS.filter((model) => { const rank={free:0,pro:1,r:2,ultra:3} as const; const plan=(usage?.plan||"free") as keyof typeof rank; return rank[model.plan] <= rank[plan]; }).map((model) => <option key={model.id} value={model.id}>{model.id}</option>)}</select><select className="select" value={reasoning} onChange={(e) => setReasoning(e.target.value as typeof reasoning)}><option value="auto">Auto</option><option value="fast">Fast</option><option value="think">Think</option><option value="think-more">Think More</option><option value="deep-think">Deep Think</option></select><button className="send" disabled={loading}><ArrowUp size={17}/></button></div></form>
           {error && <p className="error">{error}</p>}
         </>}
 
@@ -278,7 +278,7 @@ export default function Home() {
         {view==="image"&&<Panel title="Image Studio"><div className="studio"><textarea className="studio-input" value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Describe the image you want TRAZ to create…"/><button className="primary" onClick={runImage} disabled={loading}>Generate image</button>{imageResult&&<img className="studio-image" src={imageResult} alt="Generated by TRAZ"/>}</div></Panel>}
         {view==="code"&&<Panel title="Code Studio"><div className="studio"><textarea className="code-input" value={codeInput} onChange={e=>setCodeInput(e.target.value)} placeholder="Paste code for review…"/><button className="primary" onClick={analyzeCode} disabled={loading}>Analyze code</button>{codeResult&&<pre className="studio-result">{codeResult}</pre>}</div></Panel>}
         {view==="lab"&&<Panel title="TRAZ Lab"><div className="studio"><textarea className="studio-input" value={labPrompt} onChange={e=>setLabPrompt(e.target.value)} placeholder="Experiment with a prompt, reasoning strategy or model behavior…"/><button className="primary" onClick={runLab} disabled={loading}>Run experiment</button>{labResult&&<pre className="studio-result">{labResult}</pre>}</div></Panel>}
-        {view==="settings"&&<Panel title="Settings"><div className="card-grid"><div className="card"><h3>Account</h3><p>Manage authentication and account preferences.</p><button className="primary" onClick={signOut}>Sign out</button></div><div className="card"><h3>Developer API</h3><p>Create and revoke TRAZ API keys.</p><button className="primary" onClick={createKey}>Create API key</button>{newApiKey&&<pre className="studio-result api-key-once">{newApiKey}</pre>}<div className="list">{apiKeys.map(k=><div className="list-row" key={k.id}><div><b>{k.name}</b><p>{k.key_prefix}••••••</p></div>{!k.revoked_at&&<button className="icon-btn" onClick={()=>revokeKey(k.id)}><Trash2 size={15}/></button>}</div>)}</div></div><div className="card"><h3>Privacy</h3><p>Persistent memory can be reviewed and deleted from the Memory workspace.</p></div></div></Panel>}
+        {view==="connectors"&&<Panel title="Connectors"><div className="card-grid"><div className="card"><div className="card-icon"><Github/></div><h3>GitHub</h3>{github?.connected?<><p>Connected as <b>@{github.user?.login}</b>. The server keeps the token private.</p><div className="search-row"><select className="select" value={githubRepo} onChange={e=>setGithubRepo(e.target.value)}><option value="">Select repository</option>{github.repositories?.map(r=><option key={r.id} value={r.full_name}>{r.full_name}</option>)}</select><button className="primary" onClick={connectGitHub} disabled={githubBusy}>{githubBusy?"Refreshing…":"Refresh"}</button></div><input className="input" value={githubPath} onChange={e=>setGithubPath(e.target.value)} placeholder="Path, e.g. app/page.tsx"/><button className="primary" onClick={addGitHubFile} disabled={githubBusy||!githubRepo||!githubPath.trim()}>Add file to chat</button>{githubContext&&<pre className="studio-result">GitHub context loaded. Open Chat to use it.</pre>}</>:<><p>Connect the server-side GitHub token to let TRAZ read your repositories in Chat.</p><button className="primary" onClick={connectGitHub} disabled={githubBusy}>{githubBusy?"Connecting…":"Connect GitHub"}</button>{github?.error&&<p className="error">{github.error}</p>}</>}</div></div></Panel>}\n        {view==="settings"&&<Panel title="Settings"><div className="card-grid"><div className="card"><h3>Account</h3><p>Manage authentication and account preferences.</p><button className="primary" onClick={signOut}>Sign out</button></div><div className="card"><h3>Developer API</h3><p>Create and revoke TRAZ API keys.</p><button className="primary" onClick={createKey}>Create API key</button>{newApiKey&&<pre className="studio-result api-key-once">{newApiKey}</pre>}<div className="list">{apiKeys.map(k=><div className="list-row" key={k.id}><div><b>{k.name}</b><p>{k.key_prefix}••••••</p></div>{!k.revoked_at&&<button className="icon-btn" onClick={()=>revokeKey(k.id)}><Trash2 size={15}/></button>}</div>)}</div></div><div className="card"><h3>Privacy</h3><p>Persistent memory can be reviewed and deleted from the Memory workspace.</p></div></div></Panel>}
       </section>
     </main>
   </div>;
