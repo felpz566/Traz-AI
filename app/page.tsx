@@ -124,7 +124,14 @@ async function refreshGitHub(){setGithubBusy(true);setError("");try{const r=awai
     if (r.ok) setFiles((await r.json()).data || []);
   }
 
-  useEffect(() => { loadAll(); loadKeys(); loadGitHub(); }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const githubError = params.get("github_error");
+    const githubConnected = params.get("github");
+    if (githubError) setError(githubError);
+    if (githubError || githubConnected) window.history.replaceState({}, "", window.location.pathname);
+    loadAll(); loadKeys(); loadGitHub();
+  }, []);
   useEffect(() => { loadFiles(selectedProject); setSelectedFile(null); setPreviewUrl(""); setTextPreview(""); }, [selectedProject]);
 
   async function openChat(id: string) {
