@@ -1,17 +1,13 @@
 import {NextResponse} from "next/server";
-import {cookies} from "next/headers";
 import {getAuthenticatedUserId} from "@/lib/server/auth";
 import {createGitHubState,getGitHubAuthorizeUrl} from "@/lib/github-oauth";
-
 export const runtime="nodejs";
-
 export async function GET(){
   const auth=await getAuthenticatedUserId();
   const base=process.env.TRAZ_APP_URL||"http://localhost:3000";
   if(!auth)return NextResponse.redirect(new URL("/login",base));
   try{
-    const state=createGitHubState();
-    (await cookies()).set("traz_github_oauth_state",state,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:600});
+    const state=createGitHubState(auth.userId);
     return NextResponse.redirect(getGitHubAuthorizeUrl(state));
   }catch(e){
     const message=e instanceof Error?e.message:"GitHub OAuth is not configured";
