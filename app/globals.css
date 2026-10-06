@@ -29,3 +29,12 @@
 .markdown-body th{background:#18181d;font-weight:700}
 .markdown-body img{max-width:100%;border-radius:10px}
 .markdown-body input[type="checkbox"]{margin-right:7px;accent-color:#fff}
+
+.traz-dropbox{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:170px;margin:0 0 16px;padding:28px;border:1px dashed #3a3a43;border-radius:16px;background:linear-gradient(180deg,#121218,#101014);cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.traz-dropbox:hover,.traz-dropbox.dragging{border-color:#70707a;background:#17171d}
+.traz-dropbox.dragging{transform:scale(1.005)}
+.traz-dropbox-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid #303038;border-radius:13px;background:#18181e;color:#fff}
+.traz-dropbox-copy{text-align:center;display:flex;flex-direction:column;gap:3px}
+.traz-dropbox-copy strong{font-size:15px;letter-spacing:-.01em}
+.traz-dropbox-copy span{font-size:13px;color:#85858e}
+.traz-dropbox-meta{display:flex;gap:8px;align-items:center;color:#5f5f68;font-size:11px;margin-top:3px}
