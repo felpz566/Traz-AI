@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X } from "lucide-react";
+import { ArrowUp, Bot, Code2, Download, Files, FileText, FlaskConical, FolderKanban, Image as ImageIcon, MemoryStick, Plus, Settings, Sparkles, Trash2, Upload, Users, BarChart3, X, Menu } from "lucide-react";
 import { TRAZ_MODELS } from "@/lib/models";
 
 type Chat = { id: string; title: string; updated_at: string };
@@ -35,6 +35,7 @@ function formatBytes(value: number | null) {
 
 export default function Home() {
   const [view, setView] = useState("chats");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -122,7 +123,7 @@ export default function Home() {
   async function runLab(){if(!labPrompt.trim())return;setLoading(true);setError("");try{const r=await fetch("/api/lab/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:labPrompt})});const j=await r.json();if(!r.ok)throw new Error(j.error);setLabResult(j.data.text)}catch(e){setError(e instanceof Error?e.message:"Lab request failed")}finally{setLoading(false)}}
 
   function newChat() {
-    setActive(undefined); setMessages([]); setAnswer(""); setPrompt(""); setView("chats");
+    setActive(undefined); setMessages([]); setAnswer(""); setPrompt(""); setView("chats"); setSidebarOpen(false);
   }
 
   async function send(e: FormEvent) {
@@ -238,16 +239,17 @@ export default function Home() {
   const selectedProjectName = projects.find((p) => p.id === selectedProject)?.name;
 
   return <div className="traz-shell">
-    <aside className="sidebar">
+    <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
       <div className="brand">TRAZ</div>
       <button className="new-chat" onClick={newChat}><Plus size={16}/> New Chat</button>
-      <nav className="nav">{nav.map(([label, id, Icon]) => <button className={view === id ? "active" : ""} key={id} onClick={() => setView(id)}><Icon size={16}/>{label}</button>)}</nav>
+      <nav className="nav">{nav.map(([label, id, Icon]) => <button className={view === id ? "active" : ""} key={id} onClick={() => { setView(id); setSidebarOpen(false); }}><Icon size={16}/>{label}</button>)}</nav>
       <div className="chat-history">{chats.slice(0, 12).map((c) => <div className={active === c.id ? "chat-row selected" : "chat-row"} key={c.id}><button onClick={() => openChat(c.id)}>{c.title || "New chat"}</button><button className="icon-btn" onClick={() => deleteChat(c.id)}><Trash2 size={13}/></button></div>)}</div>
       <div className="muted side-foot">Intelligence, connected.</div>
     </aside>
 
     <main className="main">
-      <header className="topbar"><span className="muted">{view === "chats" ? (current?.title || "TRAZ AI") : nav.find((n) => n[1] === view)?.[0]}</span><span className="status"><Sparkles size={14}/> Connected</span></header>
+      {sidebarOpen && <button className="sidebar-overlay" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
+      <header className="topbar"><div className="topbar-left"><button className="mobile-menu" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}><Menu size={20}/></button><span className="muted">{view === "chats" ? (current?.title || "TRAZ AI") : nav.find((n) => n[1] === view)?.[0]}</span></div><span className="status"><Sparkles size={14}/> Connected</span></header>
       <section className="content">
         {view === "chats" && <>
           <div className="chat-area">{messages.length === 0 && !answer && !loading ? <div className="hero"><h1>What will you build?</h1><p className="muted">Intelligence, connected.</p></div> : <>{messages.map((m, i) => <div className={`message ${m.role}`} key={m.id || i}><span className="message-role">{m.role === "user" ? "You" : "TRAZ"}</span><div>{m.content}</div></div>)}{(answer || loading) && <div className="message assistant"><span className="message-role">TRAZ</span><div>{answer || "Thinking…"}</div></div>}</>}</div>
