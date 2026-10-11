@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789665399135,
+      "tag": "0000_felpz_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789863030825,
+      "tag": "0001_chat_uploads_storage_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789949504204,
+      "tag": "0002_api_keys_and_service_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790933579556,
+      "tag": "0003_workspace_and_school",
+      "breakpoints": true
+    }
+  ]
+}

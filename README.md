@@ -1,37 +1,20 @@
-# TRAZ AI
+# Traz AI
 
-**Intelligence, connected.**
+Workspace de inteligência artificial com React, TypeScript, TanStack Start, Supabase e Gemini.
 
-TRAZ AI is a full AI workspace built with Next.js, TypeScript, Gemini and Supabase.
-
-## Included
-
-- Multi-plan model system: Free, Pro, R and Ultra
-- TRAZ model catalog and intelligent routing
-- Streaming chat
-- Conversations and persistent memory
-- Semantic memory with embeddings
-- Projects and private files
-- File understanding
-- AI agents with tools
-- Code analysis
-- Image generation and editing
-- Automation scheduling and cron execution
-- API keys and OpenAI-compatible API routes
-- Usage limits and observability
-- GoatPay billing/webhooks
-- Supabase authentication and persistence
-- Vercel deployment configuration
-
-## Development
+## Desenvolvimento
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
-Configure the variables from `.env.example` before connecting production services.
+## Variáveis de ambiente
 
-## Brand
+Copie `.env.example` para `.env` e preencha as credenciais do seu próprio projeto Supabase e da API Gemini. Nunca envie chaves privadas ao repositório ou ao chat.
 
-TRAZ AI is the product name. Model identifiers use the `traz-` namespace.
+## Provedores
+
+- Autenticação e persistência: Supabase.
+- Modelos de IA: Google Gemini.
+- OAuth Google: configurar o provedor Google no painel do Supabase e definir a URL de redirecionamento da aplicação.

@@ -1,3 +1,0 @@
-function required(name: string): string { const value=process.env[name]; if(!value) throw new Error(`Missing required environment variable: ${name}`); return value; }
-function normalizeModel(value: string | undefined): string { const model=(value||"gemini-3.8-flash").trim(); return model==="gemini-3-8-flash"?"gemini-3.8-flash":model; }
-export const env={get aiToken(){return required("GEMINI_API_TOKEN")},get aiModel(){return normalizeModel(process.env.IA_MODEL)},get goatpayToken(){return required("GOATPAY_API_TOKEN")},get goatpayWebhookSecret(){return required("GOATPAY_WEBHOOK_SECRET")},get appUrl(){return process.env.TRAZ_APP_URL||"http://localhost:3000"}};
